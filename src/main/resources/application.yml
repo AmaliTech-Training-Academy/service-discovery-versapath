@@ -6,3 +6,11 @@ spring:
     name: ${SPRING_APPLICATION_NAME}
   config:
     import: optional:configserver:${SPRING_CLOUD_CONFIG_URI}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always
