@@ -10,7 +10,7 @@ on:
 
 jobs:
   deploy:
-    name: Deploy service-discovery
+    name: Deploying service-discovery
     runs-on: ubuntu-latest
     env:
       AWS_ECR_REPOSITORY_NAME: versapath/service-discovery
