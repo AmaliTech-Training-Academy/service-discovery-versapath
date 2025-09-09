@@ -1,3 +1,16 @@
+# Use a lightweight base image with Java 21 JDK for building the application
+FROM maven:3.8.7-eclipse-temurin-21 AS builder
+
+# Set the working directory inside the container
+WORKDIR /application
+
+# Copy the Maven project files
+COPY pom.xml .
+COPY src ./src
+
+# Build the application
+RUN mvn clean package -DskipTests
+
 # Use a lightweight base image with Java 21 JRE
 FROM bellsoft/liberica-runtime-container:jre-21-slim-musl
 
