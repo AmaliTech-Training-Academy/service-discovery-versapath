@@ -1,33 +1,40 @@
-# Use a lightweight base image with Java 21 JDK for building the application
-FROM maven:3.8.7-eclipse-temurin-21 AS builder
+# Build stage: Compile the application
+FROM maven:3.9-eclipse-temurin-21 AS builder
 
-# Set the working directory inside the container
-WORKDIR /application
+WORKDIR /build
 
-# Copy the Maven project files
+# Copy pom.xml first for better caching
 COPY pom.xml .
-COPY src ./src
+# Download dependencies (will be cached if pom.xml doesn't change)
+RUN mvn dependency:go-offline -B
+
+# Copy source code
+COPY src ./src/
 
 # Build the application
-RUN mvn clean package -DskipTests
+RUN mvn package -DskipTests
 
-# Use a lightweight base image with Java 21 JRE
-FROM bellsoft/liberica-runtime-container:jre-21-slim-musl
+# Runtime stage: Setup the actual runtime environment
+FROM bellsoft/liberica-openjre-debian:21-cds
 
-# Set the working directory inside the container
+# Add metadata
+LABEL maintainer="AmaliTech Training Academy" \
+    description="Service discovery" \
+    version="1.0"
+
+# Create a non-root user
+RUN useradd -r -u 1001 -g root servicediscovery
+
 WORKDIR /application
 
-# Copy the Jar file
-COPY target/*-SNAPSHOT.jar app.jar
+# Copy the extracted layers from the build stage
+COPY --from=builder --chown=servicediscovery:root /build/target/*.jar ./application.jar
 
-# Switch to non-root user
-USER servicediscovery
+# Configure container
+USER 1001
 
-# Expose the port that the application will run on
+# Expose Eureka port
 EXPOSE 8761
 
-# Set JVM options for optimal container performance
-ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -Djava.security.egd=file:/dev/./urandom"
-
-# Run the application
-CMD ["java", "-jar", "app.jar"]
+# Use the standard JAR execution
+ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-Djava.security.egd=file:/dev/./urandom", "-jar", "application.jar"]
